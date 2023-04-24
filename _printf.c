@@ -1,59 +1,67 @@
 #include "main.h"
-#include <stdarg.h>  // for va_list, va_start, and va_arg
-#include <stdio.h>   // for putchar and puts
+
+void print_buffer(char buffer[], int *buff_ind);
 
 /**
- * _easy - produces output according to a format.
- * @format: character string containing zero or more directives
- *
- * Return: the number of characters printed (excluding the null byte used to end output to strings)
+ * _printf - produces output according to a format
+ * @format: format string containing the characters and the specifiers
+ * Return: Printed characters
  */
-int _easy(const char *format, ...)
+int _printf(const char *format, ...)
 {
-    va_list args;
-    int count = 0;
+	int i, printed = 0, printed_chars = 0;
+	int flags, width, precision, size, buff_ind = 0;
+	va_list list;
+	char buffer[BUFF_SIZE];
 
-    va_start(args, format);
+	if (format == NULL)
+		return (-1);
 
-    while (*format)
-    {
-        if (*format == '%')
-        {
-            format++;  // move past the '%'
+	va_start(list, format);
 
-            switch (*format)
-            {
-                case 's':
-                    count += puts(va_arg(args, char *));
-                    break;
+	for (i = 0; format && format[i] != '\0'; i++)
+	{
+		if (format[i] != '%')
+		{
+			buffer[buff_ind++] = format[i];
+			if (buff_ind == BUFF_SIZE)
+				print_buffer(buffer, &buff_ind);
+			/* write(1, &format[i], 1); */
+			printed_chars++;
+		}
+		else
+		{
+			print_buffer(buffer, &buff_ind);
+			flags = get_flags(format, &i);
+			width = get_width(format, &i, list);
+			precision = get_precision(format, &i, list);
+			size = get_size(format, &i);
+			++i;
+			printed = handle_print(format, &i, list, buffer,
+					flags, width, precision, size);
+			if (printed == -1)
+				return (-1);
+			printed_chars += printed;
+		}
+	}
 
-                case 'c':
-                    putchar(va_arg(args, int));
-                    count++;
-                    break;
+	print_buffer(buffer, &buff_ind);
 
-                case '%':
-                    putchar('%');
-                    count++;
-                    break;
+	va_end(list);
 
-                default:
-                    putchar('%');
-                    putchar(*format);
-                    count += 2;
-                    break;
-            }
-        }
-        else
-        {
-            putchar(*format);
-            count++;
-        }
+	return (printed_chars);
+}
 
-        format++;
-    }
+/**
+ * print_buffer - Prints the contents of the buffer if it exists
+ * @buffer: Array of characters
+ * @buff_ind: Index at which to add next char, represents the length.
+ */
 
-    va_end(args);
+void print_buffer(char buffer[], int *buff_ind)
+{
+	if (*buff_ind > 0)
+		write(1, &buffer[0], *buff_ind);
 
-    return count;
+	*buff_ind = 0;
 }
